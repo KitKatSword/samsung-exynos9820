@@ -25,7 +25,7 @@ jobs:
             model=G973F \
             name="Cruel-GULB-MassStorage" \
             toolchain=cruel \
-            +magisk \
+            magisk=v24.3 \
             +nohardening \
             +ttl \
             +wireguard \
