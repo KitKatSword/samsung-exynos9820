@@ -57,17 +57,21 @@ jobs:
 
       - name: Install mkdtboimg
         run: |
-          wget -q https://android.googlesource.com/platform/system/libufdt/+archive/refs/heads/master.tar.gz -O mkdtboimg.tar.gz
-          tar --strip-components 2 -xzf mkdtboimg.tar.gz utils/src/mkdtboimg.py
+          curl -fL "https://android.googlesource.com/platform/system/libufdt/+/faecc11b175869e12cc387c14c395341e480f12a/utils/src/mkdtboimg.py?format=TEXT" -o mkdtboimg.b64
+          base64 -d mkdtboimg.b64 > mkdtboimg.py
+          sed -i "1c#!/usr/bin/env python3" mkdtboimg.py
           chmod +x mkdtboimg.py
           sudo mv mkdtboimg.py /usr/local/bin/mkdtboimg
+          rm -f mkdtboimg.b64
 
       - name: Install avbtool
         run: |
-          wget -q https://android.googlesource.com/platform/external/avb/+archive/refs/heads/master.tar.gz -O avbtool.tar.gz
-          tar xzf avbtool.tar.gz avbtool.py
+          curl -fL "https://android.googlesource.com/platform/external/avb/+/master/avbtool.py?format=TEXT" -o avbtool.b64
+          base64 -d avbtool.b64 > avbtool.py
+          sed -i "1c#!/usr/bin/env python3" avbtool.py
           chmod +x avbtool.py
           sudo mv avbtool.py /usr/local/bin/avbtool
+          rm -f avbtool.b64
 
       - name: Build boot image
         run: |
