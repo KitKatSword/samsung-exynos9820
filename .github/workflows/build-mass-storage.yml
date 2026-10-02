@@ -1,0 +1,95 @@
+name: Build G973F GULB Mass Storage
+
+on:
+  push:
+    branches:
+      - gulb-mass-storage
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libtinfo5 ccache wget git python3
+
+      - name: Configure kernel
+        run: |
+          ./cruelbuild config \
+            model=G973F \
+            name="Cruel-GULB-MassStorage" \
+            toolchain=cruel \
+            +magisk \
+            +nohardening \
+            +ttl \
+            +wireguard \
+            +cifs \
+            +sdfat \
+            +ntfs \
+            +mass_storage \
+            2>&1 | tee config.info
+
+      - name: Download toolchain
+        run: |
+          git clone --depth 1 \
+            --branch cruel \
+            --single-branch \
+            https://github.com/CruelKernel/samsung-exynos9820-toolchain \
+            toolchain
+
+      - name: Build kernel
+        run: |
+          ./cruelbuild :build
+
+      - name: Install mkbootimg
+        run: |
+          wget -q https://android.googlesource.com/platform/system/tools/mkbootimg/+archive/refs/heads/master.tar.gz -O mkbootimg.tar.gz
+          tar xzf mkbootimg.tar.gz mkbootimg.py gki
+          chmod +x mkbootimg.py
+          sudo mv mkbootimg.py /usr/local/bin/mkbootimg
+          sudo mv gki /usr/local/lib/python3.10/dist-packages/ || true
+
+      - name: Install mkdtboimg
+        run: |
+          wget -q https://android.googlesource.com/platform/system/libufdt/+archive/refs/heads/master.tar.gz -O mkdtboimg.tar.gz
+          tar --strip-components 2 -xzf mkdtboimg.tar.gz utils/src/mkdtboimg.py
+          chmod +x mkdtboimg.py
+          sudo mv mkdtboimg.py /usr/local/bin/mkdtboimg
+
+      - name: Install avbtool
+        run: |
+          wget -q https://android.googlesource.com/platform/external/avb/+archive/refs/heads/master.tar.gz -O avbtool.tar.gz
+          tar xzf avbtool.tar.gz avbtool.py
+          chmod +x avbtool.py
+          sudo mv avbtool.py /usr/local/bin/avbtool
+
+      - name: Build boot image
+        run: |
+          ./cruelbuild :mkimg
+
+      - name: Show output
+        run: |
+          find . -maxdepth 2 -type f -name '*.img' -ls
+          grep -i mass_storage config.info || true
+
+      - name: Upload images
+        uses: actions/upload-artifact@v4
+        with:
+          name: CruelKernel-G973F-GULB-MassStorage
+          path: '*.img'
+          if-no-files-found: error
+
+      - name: Upload config
+        uses: actions/upload-artifact@v4
+        with:
+          name: CruelKernel-G973F-config
+          path: |
+            config.info
+            .config
+          if-no-files-found: warn
